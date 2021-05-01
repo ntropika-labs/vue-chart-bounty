@@ -1,69 +1,63 @@
 <template>
-  <div ref="chart" data-test="billboard-chart"></div>
+  <div
+    ref="chart"
+    data-test="billboard-chart"
+  />
 </template>
 
-<script>
+<script lang="ts">
+import { defineComponent, PropType, ref, computed, watch, nextTick } from 'vue';
 import bb, { areaSpline } from 'billboard.js';
 
-const isDatasetItem = (item) => typeof item === 'object'
-    && typeof item.date === 'string'
-    && typeof item.performance === 'number';
-const validDataset = (dataset) => dataset.every(isDatasetItem);
+interface datasetItem {
+  date: string,
+  performance: number
+}
 
-export default {
+export default defineComponent({
   props: {
     dataset: {
-      type: Array,
-      required: true,
-      validator(dataset) {
-        return Array.isArray(dataset) && validDataset(dataset);
-      },
+      type: Object as PropType<datasetItem[]>,
+      required: true
     },
   },
-  data() {
-    return {
-      chart: null,
-    };
-  },
-  watch: {
-    chartData: {
-      deep: true,
-      handler() {
-        this.updateChart();
-      },
-    },
-  },
-  computed: {
-    chartData() {
+  setup(props) {
+    console.log(props)
+    const chart = ref()
+    const chartItem = ref()
+    const chartData = computed(() => {
       return {
-        json: this.dataset,
+        json: props.dataset,
         keys: {
           x: 'date',
           value: ['performance'],
         },
         type: areaSpline(),
       };
-    },
-  },
-  mounted() {
-    this.$nextTick(this.drawChart);
-  },
-  methods: {
-    drawChart() {
-      this.chart = bb.generate({
-        data: this.chartData,
+    })
+
+    const drawChart = () => {
+      chartItem.value = bb.generate({
+        data: chartData.value,
         axis: {
           x: {
             show: true,
             type: 'timeseries',
           },
         },
-        bindto: this.$refs.chart,
+        bindto: chart.value,
       });
-    },
-    updateChart() {
-      this.chart.load(this.chartData);
-    },
+    }
+
+    watch(chartData, () => {
+      chartItem.value.load(chartData.value)
+    })
+    nextTick(drawChart)
+
+    return {
+      chart,
+      chartItem
+    }
   },
-};
+});
 </script>
